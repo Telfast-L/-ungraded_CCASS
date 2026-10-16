@@ -19,3 +19,8 @@
 .list-count{padding:16px 23px;border-top:1px solid var(--border);font-size:11px;color:var(--muted)}
 .participant-link{font-size:11px;line-height:1.6}.stake-link{font-variant-numeric:tabular-nums;white-space:nowrap}
 .participant-summary{padding:4px 0 14px}.participant-summary h3{font-size:17px;margin:0 0 9px}.participant-summary p{font-size:12px;color:var(--muted);margin:0}
+
+[hidden]{display:none!important}.phase-toggle{font-weight:700;border-color:#8eaa96;background:#f4f8ef}.phase-toggle.enabled{background:#235b45;color:white;border-color:#235b45;box-shadow:0 0 0 3px #dfeadd}
+.vendor-received td{background:#fff7df}.vendor-received td:first-child{border-left:3px solid #d6a13a}.vendor-marker{display:block;width:fit-content;font-size:9px;color:#825819;background:#f8e7b9;border-radius:4px;padding:3px 6px;margin-top:5px}
+.insight-link{font-weight:700;white-space:nowrap}.insight-link span{font-size:10px}.integration-note{color:#c96a15;font-size:14px;margin:0 0 24px;font-weight:600}
+@media(max-width:650px){.header-right{gap:8px}.phase-toggle{padding:7px 10px;font-size:11px}.header-right .source-badge{display:none}}
