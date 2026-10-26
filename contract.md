@@ -1,41 +1,42 @@
-# CCASS demo data contract
+# Integrated CCASS workbench contract
 
-The site is static. `data.json` is the only holdings/fee source. No backend or scheduled refresh is included.
+This workbench supports a read-only local DuckDB API and a static GitHub Pages export. The original `ccass-analyst` demo remains separate.
 
-## Snapshot identity
+## Coverage and identity
 
-Each snapshot is unique by `stock` (four-character HK code string) + `date` (ISO settlement observation date). The dataset contains five stocks at 2026-06-30, 2026-07-31, 2026-08-31 and 2026-09-30.
+- Full local source: `ccass-database/ccass_history.duckdb`, 120,579,075 holdings rows, 3,458 securities and 288 available source dates from 2025-11-01 through 2026-10-22.
+- Static sample: 00005, 00388, 00700, 01810 and 09988 across all 288 available dates. The manifest gives exact exported counts.
+- Codes stay five-digit strings. `ID:<source participant ID>` matches identities across securities and dates. Blank IDs retain their source type and names under provisional `ANON:` keys. Names alone are not verified beneficial-owner identities.
+- Source dates include Saturdays. No interpolation, certified trading calendar or corporate-action adjustment is applied.
 
-Every snapshot preserves `source`, original security `name`, `issued`, `ccass`, `nonCcass`, `unnamed`, original summary categories, and `participants`.
+## Quantities and categories
 
-Each participant has a stable source `id`, `code` (blank for some named investors), original English `name`, integer `holding`, ISO `lastChange`, and rounded `sourceStake`. Displayed stake is recalculated as holding / issued * 100. `sourceStake` is retained for provenance, not used as an arithmetic input.
+Each detail record preserves holding quantity, reported percentage (nullable), source member ID and CSV row number. The raw denominator is total shares/units/warrants as supplied. No instrument-type assumption is imposed. Zero denominators produce unavailable stakes.
 
-`connect` is an object containing A00003 and A00004 share holdings. Archive and export keep them separate. Movement outputs combine their signed changes before ranking and suppress the account codes.
+Detail quantities and counts reconcile to source category 01. Source categories 02 and 03 remain aggregates. Comparisons with all twenty original demo snapshots show category 01 matches intermediary holdings, category 02 matches named-investor aggregates and category 03 matches unnamed-investor aggregates. Individual category 02 investor records are absent from these raw files and must not be invented.
 
-## Reconciliation
+Total CCASS = categories 01 + 02 + 03. Outside CCASS is derived as the source issued denominator minus those categories. The raw and original Webb-site denominators differ on nine of the twenty overlapping snapshots. The integration retains the raw denominator, so stakes and cost coverage can differ from the previous demo despite identical holding quantities.
 
-Named participant shares + unnamed investor shares = total CCASS.
+Negative source quantities remain unchanged and visibly flagged. Source quality and source/member references are available through the source page. Seven negative records concern 01940 / B02004 on 8–15 September 2026. Do not treat them as validated economic positions.
 
-Total CCASS + non-CCASS shares = issued securities.
+## Missingness
 
-Source summary categories overlap; never sum all summary rows. Named participants equal Intermediaries + Named investors.
+An unavailable security/date snapshot is unavailable, not zero. A participant missing from a complete category 01 detail snapshot contributes zero at that endpoint. A summary-only security without category 01 does not establish participant-level coverage and remains unavailable in histories and Connect trends. The source does not supply last-change dates.
 
-## Fees
+## Calculations and fees
 
-Each workbook fee record has exact `code`, original `name`, nullable `amount`, explicit `currency`, original `raw` value and workbook `row`. Match by exact code. Identical duplicate currency/amount rows count once. No matching fee or a blank workbook fee is treated as HKD 0, as instructed by the user. Conflicting fee rows or invalid currency conversions remain errors. Numeric unlabelled fees are HKD. Fixed conversions: 1 USD = HKD 7.78 and 1 EUR = HKD 8.90, as confirmed by the user. Rates and fees have no editable input boxes.
+Stake = holding / source issued denominator × 100. Cumulative stake sums all detail records from rank 1 through the current rank. Search filtering retains the full ranking. Change uses unadjusted endpoint holdings. Stake movement is a percentage-point difference using each endpoint's denominator. It is not measured trading or cash flow.
 
-Fixed fee once per selected participant. ADD unions with normal membership, DROP removes without backfill. Commands run in explicit order. Thresholds select individual named holdings >= share cutoff; aggregate unnamed investor holdings cannot be screened by individual threshold. Top-N includes named CCASS participants ordered by holding.
+Costs use category 01 detail records for Top N and individual holding thresholds. ALL also includes category 02 and 03 aggregates. Every cost group retains the existing outside-CCASS coverage rule. Aggregates without fee matches contribute zero fees and do not increase the qualifying custodian count. Category 02 individual thresholds and ranks cannot be calculated. Fixed historical workbook fees are illustrative, not effective-dated historical invoices. Exact fee-code matching, zero unmatched fees, 1 USD = HKD 7.78 and 1 EUR = HKD 8.90 remain unchanged. ADD/DROP selections apply to recorded detail participants.
 
-Non-CCASS contributes its aggregate shares to coverage in every group. ALL additionally includes the unnamed CCASS aggregate. These aggregates have no matching fee and are assigned zero cost; they do not qualify for the HKD 2,500 count. Totals sum matched fees plus these zero assignments. The count includes participants whose resulting fee is at least HKD 2,500.
+## Other modules
 
-## Movement and insight boundaries
+Raw Stock Connect trends retain A00003 and A00004 individually and combined. Market turnover, HSI and sector holding-value charts keep their separate workbook/web datasets and original dates. The raw database has no prices, sectors or turnover series, so no new valuation is inferred.
 
-Holdings Explorer has two routes: `#holdings` for holdings and `#holdings/changes` for changes between dates. The changes table includes every named participant, keeps the two Stock Connect accounts separate, and supports increases/decreases/unchanged filters. Change = end holding − start holding. Stake change in percentage points uses each endpoint's issued-security denominator. Aggregate unnamed and non-CCASS balances reconcile separately. The CSV exports the current filtered changes, across all pages.
+Phase 2 reply estimates, subcustodian names and previous-vendor markers remain illustrative. Intel issuing uses real endpoint holdings and selects absolute stake movements strictly greater than 0.1 percentage points. No external issuing is performed. Filing database, IRI insight and T3G integrations remain pending.
 
-The separate Movement Monitor ranks intermediaries, includes A/B/C codes, excludes named and unnamed investor accounts, and combines the Stock Connect accounts before ranking. Missing participants at a complete captured endpoint have zero holdings at that endpoint. Compare only available dates; never interpolate. No trade-flow, cash-flow or beneficial-owner inference is made. Potential investor cells remain blank.
+## API and static files
 
-Stock Connect insights are deterministic arithmetic on the captured observations. Combined stake uses the source issued-security denominator, including its security-class scope. No sector classifications or price/valuation data are present.
+`GET /api/meta`, `/api/dates?stock=`, `/api/snapshot?stock=&date=`, `/api/history?stock=&participant=`, `/api/portfolio?participant=&date=` and `/api/connect?stock=` are read-only and parameterized. No arbitrary SQL, database download or filesystem-write endpoint is provided. The server binds to 127.0.0.1 only.
 
-## Handoff
-
-Replace data.json with validated snapshots following the same contract. Update source/capture metadata and observation labels when expanding beyond the current fixed demo universe. Chinese names can be added as a separate participant-code mapping later. Optional ADD/DROP scenarios use a modal dialog, apply only after Apply adjustments, and are session-only; changing security resets them.
+Static month files use a participant dictionary and row arrays `[participantIndex, holding, reportedPercentage, sourceId, sourceRow]`. Metadata and raw summaries stay attached to each snapshot. `data-service.js` expands them into the same UI contract as the API. The manifest describes exported scope and available dates per security. Only requested months load into the browser.

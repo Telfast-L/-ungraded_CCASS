@@ -1,12 +1,12 @@
 export const connectCodes = ['A00003','A00004'];
 export const isIntermediary = p => /^[ABC]/.test(p.code);
 export const totalConnect = s => connectCodes.reduce((sum,code)=>sum+s.connect[code],0);
-export const stake = (holding,s) => holding / s.issued * 100;
+export const stake = (holding,s) => s.issued>0?holding / s.issued * 100:null;
 export function holdingChanges(start,end) {
   const a=new Map(start.participants.map(p=>[p.id,p])),b=new Map(end.participants.map(p=>[p.id,p]));
   return [...new Set([...a.keys(),...b.keys()])].map(id=>{
     const previous=a.get(id),current=b.get(id),before=previous?.holding??0,after=current?.holding??0;
-    return {id,code:current?.code||previous?.code||'',name:current?.name||previous.name,before,after,delta:after-before,stakeChange:stake(after,end)-stake(before,start)};
+    return {id,code:current?.code||previous?.code||'',name:current?.name||previous.name,before,after,delta:after-before,stakeChange:start.issued>0&&end.issued>0?stake(after,end)-stake(before,start):null};
   }).sort((a,b)=>Math.abs(b.delta)-Math.abs(a.delta)||a.name.localeCompare(b.name));
 }
 export function movements(start,end) {
@@ -51,14 +51,15 @@ export function costGroup(s,label,fees,fx,{commands=[],overrides={},nonCcassFee=
   // Aggregate holdings without a matching fee carry zero cost under the user-selected rule.
   // Unnamed investor holdings cannot be selected by a per-participant holding cutoff. Only ALL includes the aggregate.
   const unnamedIncluded=label==='ALL';
-  const shares=members.reduce((n,p)=>n+p.holding,0)+(unnamedIncluded?s.unnamed:0)+s.nonCcass;
+  const namedAggregateIncluded=label==='ALL'&&(s.namedAggregate??0)!==0;
+  const shares=(namedAggregateIncluded?s.namedAggregate:0)+members.reduce((n,p)=>n+p.holding,0)+(unnamedIncluded?s.unnamed:0)+s.nonCcass;
   let known=members.reduce((n,p)=>n+(p.fee.hkd??0),0), unresolved=members.filter(p=>p.fee.hkd===null).length;
   let count=members.filter(p=>p.fee.hkd!==null&&p.fee.hkd>=2500).length;
   if(s.nonCcass>0)known+=nonCcassFee??0;
   if(unnamedIncluded&&s.unnamed>0)known+=unnamedFee??0;
   const zeroFees=members.filter(p=>p.fee.status==='missing').length;
   const excluded=pool.filter(p=>!map.has(p.id)&&commands.some(c=>c.type==='DROP'&&c.id===p.id));
-  return {label,members,excluded,shares,coverage:stake(shares,s),known,unresolved,zeroFees,count,complete:unresolved===0,unnamedIncluded,nonCcass:s.nonCcass};
+  return {label,members,excluded,shares,coverage:stake(shares,s),known,unresolved,zeroFees,count,complete:unresolved===0,unnamedIncluded,namedAggregateIncluded,nonCcass:s.nonCcass};
 }
 export function commentary(rows,n) {
   const cn=['','一','二','三','四','五','六','七','八','九','十'][n]||n;

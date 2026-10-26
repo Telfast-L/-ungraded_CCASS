@@ -24,3 +24,5 @@
 .vendor-received td{background:#fff7df}.vendor-received td:first-child{border-left:3px solid #d6a13a}.vendor-marker{display:block;width:fit-content;font-size:9px;color:#825819;background:#f8e7b9;border-radius:4px;padding:3px 6px;margin-top:5px}
 .insight-link{font-weight:700;white-space:nowrap}.insight-link span{font-size:10px}.integration-note{color:#c96a15;font-size:14px;margin:0 0 24px;font-weight:600}
 @media(max-width:650px){.header-right{gap:8px}.phase-toggle{padding:7px 10px;font-size:11px}.header-right .source-badge{display:none}}
+
+.raw-context{font-size:11px;color:#607668;margin:0 0 20px}.filterbar #stock{max-width:530px}.filterbar #stock-search{font-size:12px;letter-spacing:0;width:280px}.button:disabled{opacity:.5;cursor:wait}.notice.error{border-color:#e2b9ac;background:#fff6f1;color:#9a4d31}#detail-body .table-wrap{max-height:52vh}#content .table-wrap th{position:sticky;top:0;z-index:1}

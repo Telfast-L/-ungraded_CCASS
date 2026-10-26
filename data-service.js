@@ -1,0 +1,13 @@
+const json=async url=>{const r=await fetch(url);if(!r.ok){let e;try{e=await r.json();}catch{}throw Error(e?.error||`Data request failed (${r.status}).`);}return r.json();};
+export function expandSnapshot(s,participants){return {...s,participants:s.rows.map(r=>{const p=participants[r[0]];return {id:p[0],code:p[1],hksccType:p[2],name:p[3],nameZh:p[4],holding:r[1],sourceStake:r[2],sourceId:r[3],sourceRow:r[4],lastChange:null,provisional:p[0].startsWith('ANON:'),negative:r[1]<0};})};}
+export async function openData(){
+ const config=await json('./runtime-config.json');const api=config.mode==='api';const meta=await json(api?config.apiBase+'meta':'./raw-data/manifest.json');
+ const cache=new Map(),months=new Map();const get=async (route,params)=>json(config.apiBase+route+'?'+new URLSearchParams(params));
+ async function month(stock,date){const key=stock+'/'+date.slice(0,7);if(!months.has(key)){months.set(key,json('./raw-data/'+key+'.json').catch(e=>{months.delete(key);throw e;}));}const m=await months.get(key);if(months.size>8)months.delete(months.keys().next().value);return m;}
+ async function snapshot(stock,date){const key=stock+'/'+date;if(cache.has(key))return cache.get(key);let s;if(api)s=await get('snapshot',{stock,date});else{const m=await month(stock,date);const raw=m.snapshots.find(s=>s.date===date);if(!raw)return null;s=expandSnapshot(raw,m.participants);}cache.set(key,s);if(cache.size>36)cache.delete(cache.keys().next().value);return s;}
+ const dates=stock=>api?get('dates',{stock}):Promise.resolve(meta.datesByStock[stock]||[]);
+ async function history(stock,participant){if(api)return get('history',{stock,participant});const ds=await dates(stock),rows=[];for(const d of ds){const s=await snapshot(stock,d),p=s.participants.find(p=>p.id===participant),recorded=!!p,holding=recorded?p.holding:s.summaryOnly?null:0;rows.push({date:d,holding,stake:s.issued>0&&holding!==null?100*holding/s.issued:null,issued:s.issued,recorded,has_detail:!s.summaryOnly});}return rows;}
+ async function portfolio(participant,date){if(api)return get('portfolio',{participant,date});const rows=[];for(const st of meta.stocks){if(!(meta.datesByStock[st.code]||[]).includes(date))continue;const s=await snapshot(st.code,date),p=s.participants.find(p=>p.id===participant);if(p)rows.push({stock:st.code,name:s.name,holding:p.holding,issued:s.issued,stake:s.issued>0?100*p.holding/s.issued:null});}return rows.sort((a,b)=>b.holding-a.holding);}
+ const connect=stock=>api?get('connect',{stock}):json('./raw-data/'+stock+'/connect.json');
+ return {meta,mode:api?'api':'static',snapshot,dates,history,portfolio,connect,cache};
+}
